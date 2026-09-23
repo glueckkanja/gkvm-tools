@@ -25,7 +25,7 @@ jobs:
       contents: read
       packages: read
       id-token: write
-    uses: glueckkanja/gkvm-tools/.github/workflows/terraform-module.yml@5a4711858276e084da91a1f77e419c00806e90a3 # v0.1.0
+    uses: glueckkanja/gkvm-tools/.github/workflows/terraform-module.yml@9c68b6a0cc9ce93a69c024dbaa2aa391d39046d1 # v0.1.1
     with:
       # auto | base | azure | github
       profile: auto
