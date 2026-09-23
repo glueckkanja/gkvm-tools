@@ -9,4 +9,6 @@ permissions: {}
 
 jobs:
   release:
+    permissions:
+      contents: write # Required to create the GitHub release.
     uses: glueckkanja/gkvm-tools/.github/workflows/release.yml@5a4711858276e084da91a1f77e419c00806e90a3 # v0.1.0

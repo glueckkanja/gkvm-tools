@@ -19,6 +19,12 @@ concurrency:
 
 jobs:
   gkvm:
+    # A called workflow can only lower these, so grant exactly what its jobs
+    # ask for: read sources, pull the image, request the OIDC token.
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
     uses: glueckkanja/gkvm-tools/.github/workflows/terraform-module.yml@5a4711858276e084da91a1f77e419c00806e90a3 # v0.1.0
     with:
       # auto | base | azure | github

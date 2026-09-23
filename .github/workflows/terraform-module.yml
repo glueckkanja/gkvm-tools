@@ -5,6 +5,10 @@
 #
 #   jobs:
 #     gkvm:
+#       permissions:
+#         contents: read
+#         packages: read
+#         id-token: write
 #       uses: glueckkanja/gkvm-tools/.github/workflows/terraform-module.yml@<sha> # vX.Y.Z
 #       with:
 #         examples: smoke
