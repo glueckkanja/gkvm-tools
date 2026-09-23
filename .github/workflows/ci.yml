@@ -26,7 +26,7 @@ jobs:
         with:
           persist-credentials: false
       - name: shellcheck
-        run: shellcheck -x scripts/*.sh docker/gkvm gkvm
+        run: shellcheck -x --source-path=SCRIPTDIR scripts/*.sh docker/gkvm gkvm
       - uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
         with:
           # Only this repository's own workflows; templates/ are audited by

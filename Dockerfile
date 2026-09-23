@@ -23,7 +23,7 @@ RUN set -eux; \
     curl -fsSLo terraform.zip "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip" && unzip -q terraform.zip terraform && rm terraform.zip; \
     curl -fsSLo tflint.zip "https://github.com/terraform-linters/tflint/releases/download/v${TFLINT_VERSION}/tflint_linux_${TARGETARCH}.zip" && unzip -q tflint.zip tflint && rm tflint.zip; \
     curl -fsSL "https://github.com/terraform-docs/terraform-docs/releases/download/v${TERRAFORM_DOCS_VERSION}/terraform-docs-v${TERRAFORM_DOCS_VERSION}-linux-${TARGETARCH}.tar.gz" | tar -xz terraform-docs; \
-    curl -fsSL "https://github.com/zizmorcore/zizmor/releases/download/v${ZIZMOR_VERSION}/zizmor-${rust}-unknown-linux-gnu.tar.gz" | tar -xz --strip-components=1 --wildcards '*/zizmor'; \
+    curl -fsSL "https://github.com/zizmorcore/zizmor/releases/download/v${ZIZMOR_VERSION}/zizmor-${rust}-unknown-linux-gnu.tar.gz" | tar -xz zizmor; \
     chmod +x tofu terraform tflint terraform-docs zizmor
 
 FROM debian:bookworm-slim
