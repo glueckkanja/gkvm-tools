@@ -6,11 +6,14 @@ ARG GO_VERSION=1.27
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-bookworm AS gobuild
 ARG TARGETOS TARGETARCH
 ARG TERRAFMT_VERSION AVMFIX_VERSION HCLMERGE_REF
-ENV CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GOBIN=/out
+ENV CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH
+# GOBIN must stay unset: go refuses to install cross-compiled binaries into
+# it. Native builds land in /go/bin, cross builds in /go/bin/<os>_<arch>.
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     go install "github.com/katbyte/terrafmt@v${TERRAFMT_VERSION}" \
  && go install "github.com/lonegunmanb/avmfix@v${AVMFIX_VERSION}" \
- && go install "github.com/lonegunmanb/hclmerge@${HCLMERGE_REF}"
+ && go install "github.com/lonegunmanb/hclmerge@${HCLMERGE_REF}" \
+ && mkdir -p /out && find /go/bin -type f -exec cp {} /out/ \;
 
 FROM debian:bookworm-slim AS download
 ARG TARGETARCH
