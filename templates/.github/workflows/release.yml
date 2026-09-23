@@ -9,4 +9,4 @@ permissions: {}
 
 jobs:
   release:
-    uses: glueckkanja/gkvm-tools/.github/workflows/release.yml@main # TODO pin to a release SHA
+    uses: glueckkanja/gkvm-tools/.github/workflows/release.yml@5a4711858276e084da91a1f77e419c00806e90a3 # v0.1.0

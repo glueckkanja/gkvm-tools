@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   gkvm:
-    uses: glueckkanja/gkvm-tools/.github/workflows/terraform-module.yml@main # TODO pin to a release SHA
+    uses: glueckkanja/gkvm-tools/.github/workflows/terraform-module.yml@5a4711858276e084da91a1f77e419c00806e90a3 # v0.1.0
     with:
       # auto | base | azure | github
       profile: auto
