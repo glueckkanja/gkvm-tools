@@ -12,10 +12,11 @@
 #       uses: glueckkanja/gkvm-tools/.github/workflows/terraform-module.yml@<sha> # vX.Y.Z
 #       with:
 #         examples: smoke
-#       secrets:
-#         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-#         ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-#         ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+#       secrets: inherit
+#
+# `secrets: inherit` is required when examples run: the ARM_*_OVERRIDE secrets
+# live on the caller's "test" environment and only resolve inside the job that
+# declares that environment, which is the examples job below.
 #
 # Every job runs inside the pinned gkvm-tools image, so CI executes exactly the
 # same scripts as `./gkvm <target>` on a laptop.
@@ -45,20 +46,29 @@ on:
           gkvm-tools image. Defaults to the image released together with this
           workflow version; override with a digest for a fully reproducible run.
         type: string
-        default: ghcr.io/glueckkanja/gkvm-tools:0.1.1
+        default: ghcr.io/glueckkanja/gkvm-tools:0.1.2
       runs-on:
         description: Runner label.
         type: string
         default: ubuntu-latest
     secrets:
       ARM_CLIENT_ID:
-        description: Entra application (client) id for Azure example runs (OIDC).
+        description: Entra application (client) id for Azure example runs (OIDC). Organisation-wide default.
         required: false
       ARM_TENANT_ID:
-        description: Entra tenant id for Azure example runs.
+        description: Entra tenant id for Azure example runs. Organisation-wide default.
         required: false
       ARM_SUBSCRIPTION_ID:
-        description: Subscription for Azure example runs.
+        description: Subscription for Azure example runs. Organisation-wide default.
+        required: false
+      ARM_CLIENT_ID_OVERRIDE:
+        description: Per-repository override, usually an environment secret on "test". Wins over ARM_CLIENT_ID.
+        required: false
+      ARM_TENANT_ID_OVERRIDE:
+        description: Per-repository override. Wins over ARM_TENANT_ID.
+        required: false
+      ARM_SUBSCRIPTION_ID_OVERRIDE:
+        description: Per-repository override. Wins over ARM_SUBSCRIPTION_ID.
         required: false
       GKVM_GITHUB_TOKEN:
         description: Token for the sandbox organisation used by GitHub example runs.
@@ -186,10 +196,12 @@ jobs:
       GKVM_EXAMPLE: ${{ matrix.example }}
       GKVM_E2E: ${{ inputs.examples == 'e2e' && '1' || '0' }}
       # azure profile: azurerm/azapi exchange the Actions OIDC token themselves.
+      # Environment-scoped *_OVERRIDE secrets win over the organisation defaults
+      # (same precedence as the AVM prepare-credential.sh).
       ARM_USE_OIDC: "true"
-      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID_OVERRIDE || secrets.ARM_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID_OVERRIDE || secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID_OVERRIDE || secrets.ARM_SUBSCRIPTION_ID }}
       # github profile: a token for the sandbox organisation.
       GITHUB_TOKEN: ${{ secrets.GKVM_GITHUB_TOKEN }}
       GITHUB_OWNER: ${{ vars.GKVM_GITHUB_OWNER }}
@@ -197,6 +209,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: expose the Actions OIDC token to the providers
+        # azurerm and azapi also detect ACTIONS_ID_TOKEN_REQUEST_*, this makes
+        # the hand-over explicit and identical to the old AVM e2e runs.
+        run: |
+          {
+            echo "ARM_OIDC_REQUEST_TOKEN=${ACTIONS_ID_TOKEN_REQUEST_TOKEN}"
+            echo "ARM_OIDC_REQUEST_URL=${ACTIONS_ID_TOKEN_REQUEST_URL}"
+          } >> "$GITHUB_ENV"
       - name: plan (or apply and destroy) the example
         run: gkvm test-examples
 

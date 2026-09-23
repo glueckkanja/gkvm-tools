@@ -34,8 +34,7 @@ jobs:
       # off | smoke (plan) | e2e (apply + destroy); smoke and e2e need the
       # "test" environment with credentials
       examples: "off"
-    # Organisation secrets for example runs (only used when examples != off).
-    secrets:
-      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+    # Environment-scoped ARM_*_OVERRIDE secrets on "test" only resolve inside
+    # the called job that declares the environment, so they cannot be mapped
+    # explicitly here.
+    secrets: inherit # zizmor: ignore[secrets-inherit]
