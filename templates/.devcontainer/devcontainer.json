@@ -1,6 +1,6 @@
 {
   "name": "gkvm",
-  "image": "ghcr.io/glueckkanja/gkvm-tools:v1",
+  "image": "ghcr.io/glueckkanja/gkvm-tools:v0",
   "workspaceFolder": "/src",
   "workspaceMount": "source=${localWorkspaceFolder},target=/src,type=bind",
   "customizations": {

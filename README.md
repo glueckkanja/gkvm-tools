@@ -80,15 +80,17 @@ Secrets are declared explicitly (`ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIP
 
 ## Image
 
-Built by `release-image.yml` for `linux/amd64` and `linux/arm64` on every `vX.Y.Z` tag, pushed to GHCR with the tags `X.Y.Z`, `X.Y`, `vX` and `sha-…`, signed with cosign (keyless) and attested with build provenance.
+Built by `release-image.yml` for `linux/amd64` and `linux/arm64` on every `vX.Y.Z` tag, pushed to GHCR with the tags `X.Y.Z`, `X.Y`, `vX` (currently `v0`) and `sha-…`, signed with cosign (keyless) and attested with build provenance.
 
 Verify a pull:
 
 ```bash
-cosign verify ghcr.io/glueckkanja/gkvm-tools:v1 \
+cosign verify ghcr.io/glueckkanja/gkvm-tools:v0 \
   --certificate-identity-regexp='^https://github.com/glueckkanja/gkvm-tools/' \
   --certificate-oidc-issuer=https://token.actions.githubusercontent.com
 ```
+
+Releasing: bump `versions.env` if needed, set the `image` default in `.github/workflows/terraform-module.yml` to the new version, commit, tag `vX.Y.Z`, push the tag. Then pin `templates/` to the tag's commit SHA in a follow-up commit.
 
 Tools inside (`gkvm versions`): OpenTofu, Terraform, tflint (plugins pre-installed for every profile), terraform-docs, terrafmt, avmfix, hclmerge, zizmor, git, jq, make. Versions live in `versions.env`; bump them in a pull request, tag, done.
 

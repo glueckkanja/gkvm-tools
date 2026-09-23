@@ -41,9 +41,11 @@ on:
         type: string
         default: test
       image:
-        description: gkvm-tools image. Pin by digest for a fully reproducible run.
+        description: >-
+          gkvm-tools image. Defaults to the image released together with this
+          workflow version; override with a digest for a fully reproducible run.
         type: string
-        default: ghcr.io/glueckkanja/gkvm-tools:v1
+        default: ghcr.io/glueckkanja/gkvm-tools:0.1.1
       runs-on:
         description: Runner label.
         type: string

@@ -17,7 +17,7 @@ if ($env:GKVM_IN_CONTAINER) {
 }
 
 $runtime = if ($env:CONTAINER_RUNTIME) { $env:CONTAINER_RUNTIME } else { 'docker' }
-$image   = if ($env:GKVM_IMAGE) { $env:GKVM_IMAGE } else { 'ghcr.io/glueckkanja/gkvm-tools:v1' }
+$image   = if ($env:GKVM_IMAGE) { $env:GKVM_IMAGE } else { 'ghcr.io/glueckkanja/gkvm-tools:v0' }
 $azcfg   = if ($env:AZURE_CONFIG_DIR) { $env:AZURE_CONFIG_DIR } else { Join-Path $HOME '.azure' }
 New-Item -ItemType Directory -Force -Path $azcfg | Out-Null
 
