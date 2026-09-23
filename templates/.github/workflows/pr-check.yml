@@ -22,9 +22,9 @@ jobs:
     # A called workflow can only lower these, so grant exactly what its jobs
     # ask for: read sources, pull the image, request the OIDC token.
     permissions:
-      contents: read
-      packages: read
-      id-token: write
+      contents: read # Required to check out the module sources.
+      packages: read # Required to pull the gkvm-tools image from GHCR.
+      id-token: write # Required for the providers' OIDC login in example runs.
     uses: glueckkanja/gkvm-tools/.github/workflows/terraform-module.yml@ca1c8e25384a52d687ff19945703bbbb54b70079 # v0.1.2
     with:
       # auto | base | azure | github
