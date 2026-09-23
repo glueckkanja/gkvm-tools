@@ -1,0 +1,15 @@
+{
+  "name": "gkvm",
+  "image": "ghcr.io/glueckkanja/gkvm-tools:v1",
+  "workspaceFolder": "/src",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/src,type=bind",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "EditorConfig.EditorConfig",
+        "OpenTofu.vscode-opentofu",
+        "hashicorp.terraform"
+      ]
+    }
+  }
+}

@@ -1,0 +1,83 @@
+---
+# Self-test for gkvm-tools: lint the scripts and workflows, build the image
+# for the runner architecture and run the full pr-check against the fixtures.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: shellcheck and zizmor
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Required to check out the sources.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: shellcheck
+        run: shellcheck -x scripts/*.sh docker/gkvm gkvm
+      - uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          # Only this repository's own workflows; templates/ are audited by
+          # the module repositories that copy them.
+          inputs: .github
+          advanced-security: false
+          persona: regular
+
+  image:
+    name: build image and run fixtures
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Required to check out the sources.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: build args from versions.env
+        id: versions
+        run: |
+          {
+            echo 'args<<EOF'
+            grep -v '^#' versions.env
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          push: false
+          tags: gkvm-tools:ci
+          build-args: ${{ steps.versions.outputs.args }}
+          secrets: |
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: tool versions
+        run: docker run --rm gkvm-tools:ci gkvm versions
+      - name: pr-check on every fixture
+        run: |
+          set -euo pipefail
+          for f in fixtures/*/; do
+            echo "::group::${f}"
+            docker run --rm -v "$PWD/$f:/src" -w /src gkvm-tools:ci gkvm pr-check
+            echo "::endgroup::"
+          done
+      - name: pre-commit leaves fixtures unchanged
+        run: |
+          set -euo pipefail
+          for f in fixtures/*/; do
+            docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/$f:/src" -w /src gkvm-tools:ci gkvm pre-commit
+          done
+          git diff --exit-code -- fixtures

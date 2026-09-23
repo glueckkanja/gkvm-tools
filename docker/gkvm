@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# In-image entrypoint: `gkvm <target>` == `make -f /opt/gkvm/Makefile <target>`.
+set -euo pipefail
+exec make --no-print-directory -f "${GKVM_HOME:-/opt/gkvm}/Makefile" "$@"

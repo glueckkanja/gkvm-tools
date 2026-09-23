@@ -1,0 +1,46 @@
+#!/usr/bin/env sh
+# gkvm: run a gkvm-tools make target against the current module repository.
+#
+#   ./gkvm pre-commit     ./gkvm pr-check     ./gkvm tflint ...
+#
+# Runs the pinned gkvm-tools container image. Inside the devcontainer (or any
+# shell where GKVM_IN_CONTAINER is set) it calls make directly.
+#
+# Environment:
+#   GKVM_IMAGE            image to run (default ghcr.io/glueckkanja/gkvm-tools:v1)
+#   CONTAINER_RUNTIME     docker (default) or podman
+#   GKVM_BINARY           tofu (default) or terraform
+#   GKVM_PROFILE          base | azure | github (default: auto-detect)
+#   ARM_* / GITHUB_TOKEN  passed through for example plans and integration tests
+
+set -eu
+
+if [ "$#" -eq 0 ]; then
+  echo "Usage: gkvm <target>   (try: gkvm help)" >&2
+  exit 1
+fi
+
+if [ -n "${GKVM_IN_CONTAINER:-}" ]; then
+  exec make --no-print-directory -f "${GKVM_HOME:-/opt/gkvm}/Makefile" "$@"
+fi
+
+CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-docker}"
+GKVM_IMAGE="${GKVM_IMAGE:-ghcr.io/glueckkanja/gkvm-tools:v1}"
+AZURE_CONFIG_DIR="${AZURE_CONFIG_DIR:-$HOME/.azure}"
+
+if ! command -v "$CONTAINER_RUNTIME" >/dev/null 2>&1; then
+  echo "Error: $CONTAINER_RUNTIME is not installed." >&2
+  exit 1
+fi
+
+mkdir -p "$AZURE_CONFIG_DIR"
+
+# -e NAME (no value) forwards the variable only when it is set on the host.
+exec "$CONTAINER_RUNTIME" run --rm -it \
+  --user "$(id -u):$(id -g)" \
+  -v "$(pwd)":/src -w /src \
+  -v "$AZURE_CONFIG_DIR":/azureconfig -e AZURE_CONFIG_DIR=/azureconfig \
+  -e GKVM_BINARY -e GKVM_PROFILE -e GKVM_E2E -e GKVM_EXAMPLE -e GKVM_ZIZMOR_PERSONA \
+  -e ARM_CLIENT_ID -e ARM_CLIENT_SECRET -e ARM_TENANT_ID -e ARM_SUBSCRIPTION_ID -e ARM_USE_OIDC -e ARM_USE_AZUREAD \
+  -e GITHUB_TOKEN -e GH_TOKEN -e GITHUB_OWNER -e GITHUB_REPOSITORY \
+  "$GKVM_IMAGE" gkvm "$@"

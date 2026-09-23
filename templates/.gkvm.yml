@@ -1,0 +1,3 @@
+# gkvm-tools settings for this repository. Flat key: value lines only.
+# profile: auto        # auto | base | azure | github
+# binary: tofu         # tofu | terraform

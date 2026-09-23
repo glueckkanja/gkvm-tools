@@ -1,0 +1,9 @@
+# gkvm-tools: nothing to ignore beyond the usual Terraform entries.
+# Delete these AVM leftovers from .gitignore when migrating:
+#   avmmakefile  README-generated.md  avm.tflint*.hcl  avm.tflint*.merged.hcl
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log

@@ -1,0 +1,213 @@
+---
+# Reusable checks for every glueckkanja verified module (GKVM).
+#
+# Call it from a module repository:
+#
+#   jobs:
+#     gkvm:
+#       uses: glueckkanja/gkvm-tools/.github/workflows/terraform-module.yml@<sha> # vX.Y.Z
+#       with:
+#         examples: smoke
+#       secrets:
+#         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+#         ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+#         ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+#
+# Every job runs inside the pinned gkvm-tools image, so CI executes exactly the
+# same scripts as `./gkvm <target>` on a laptop.
+name: GKVM module checks
+
+on:
+  workflow_call:
+    inputs:
+      profile:
+        description: Rule profile. auto detects from required_providers (azure | github | base).
+        type: string
+        default: auto
+      binary:
+        description: CLI to run the module with (tofu | terraform).
+        type: string
+        default: tofu
+      examples:
+        description: What to do with examples/*. off = nothing, smoke = plan, e2e = apply and destroy.
+        type: string
+        default: "off"
+      environment:
+        description: GitHub environment holding the credentials for example runs.
+        type: string
+        default: test
+      image:
+        description: gkvm-tools image. Pin by digest for a fully reproducible run.
+        type: string
+        default: ghcr.io/glueckkanja/gkvm-tools:v1
+      runs-on:
+        description: Runner label.
+        type: string
+        default: ubuntu-latest
+    secrets:
+      ARM_CLIENT_ID:
+        description: Entra application (client) id for Azure example runs (OIDC).
+        required: false
+      ARM_TENANT_ID:
+        description: Entra tenant id for Azure example runs.
+        required: false
+      ARM_SUBSCRIPTION_ID:
+        description: Subscription for Azure example runs.
+        required: false
+      GKVM_GITHUB_TOKEN:
+        description: Token for the sandbox organisation used by GitHub example runs.
+        required: false
+
+# Deny everything at the workflow level; each job grants only what it needs.
+permissions: {}
+
+env:
+  GKVM_PROFILE: ${{ inputs.profile }}
+  GKVM_BINARY: ${{ inputs.binary }}
+
+jobs:
+  static:
+    name: static checks
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read # Required to check out the module sources.
+      packages: read # Required to pull the gkvm-tools image.
+    container:
+      image: ${{ inputs.image }} # zizmor: ignore[unpinned-images] the caller pins the image, by digest if it wants full reproducibility
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: tool versions
+        run: gkvm versions
+      - name: profile
+        run: gkvm profile
+      - name: fmt check
+        run: gkvm fmtcheck
+      - name: fix check (avmfix, terrafmt)
+        if: success() || failure()
+        run: gkvm fixcheck
+      - name: docs check
+        if: success() || failure()
+        run: gkvm docscheck
+      - name: tflint
+        if: success() || failure()
+        run: gkvm tflint
+      - name: zizmor
+        if: success() || failure()
+        run: gkvm zizmor
+
+  validate:
+    name: validate
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read # Required to check out the module sources.
+      packages: read # Required to pull the gkvm-tools image.
+    container:
+      image: ${{ inputs.image }} # zizmor: ignore[unpinned-images] the caller pins the image, by digest if it wants full reproducibility
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: init and validate every scope
+        run: gkvm validate
+
+  unit:
+    name: unit tests
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read # Required to check out the module sources.
+      packages: read # Required to pull the gkvm-tools image.
+    container:
+      image: ${{ inputs.image }} # zizmor: ignore[unpinned-images] the caller pins the image, by digest if it wants full reproducibility
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: tofu test tests/unit
+        run: gkvm test-unit
+
+  discover:
+    name: discover examples
+    if: inputs.examples != 'off' && github.event.pull_request.head.repo.fork == false
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read # Required to check out the module sources.
+      packages: read # Required to pull the gkvm-tools image.
+    container:
+      image: ${{ inputs.image }} # zizmor: ignore[unpinned-images] the caller pins the image, by digest if it wants full reproducibility
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    outputs:
+      examples: ${{ steps.list.outputs.examples }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: list
+        run: echo "examples=$(gkvm list-examples)" >> "$GITHUB_OUTPUT"
+
+  examples:
+    name: example ${{ matrix.example }}
+    needs: [discover]
+    if: needs.discover.outputs.examples != '[]'
+    runs-on: ${{ inputs.runs-on }}
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read # Required to check out the module sources.
+      packages: read # Required to pull the gkvm-tools image.
+      id-token: write # Required for the providers' OIDC login (ARM_USE_OIDC).
+    container:
+      image: ${{ inputs.image }} # zizmor: ignore[unpinned-images] the caller pins the image, by digest if it wants full reproducibility
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    strategy:
+      fail-fast: false
+      matrix:
+        example: ${{ fromJson(needs.discover.outputs.examples) }}
+    env:
+      GKVM_EXAMPLE: ${{ matrix.example }}
+      GKVM_E2E: ${{ inputs.examples == 'e2e' && '1' || '0' }}
+      # azure profile: azurerm/azapi exchange the Actions OIDC token themselves.
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      # github profile: a token for the sandbox organisation.
+      GITHUB_TOKEN: ${{ secrets.GKVM_GITHUB_TOKEN }}
+      GITHUB_OWNER: ${{ vars.GKVM_GITHUB_OWNER }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: plan (or apply and destroy) the example
+        run: gkvm test-examples
+
+  complete:
+    name: GKVM checks complete
+    if: always()
+    needs: [static, validate, unit, discover, examples]
+    runs-on: ${{ inputs.runs-on }}
+    permissions: {}
+    steps:
+      - name: fail when any required job failed
+        env:
+          RESULTS: ${{ toJson(needs) }}
+        run: |
+          echo "$RESULTS"
+          if echo "$RESULTS" | grep -Eq '"result": *"(failure|cancelled)"'; then
+            echo "::error::at least one check failed"
+            exit 1
+          fi
+          echo "all checks passed"

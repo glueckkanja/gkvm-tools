@@ -1,0 +1,41 @@
+---
+# Reusable release for GKVM modules: on a semver tag, publish a GitHub Release
+# with generated notes. Pre-release tags (containing a hyphen) are flagged.
+#
+#   on:
+#     push:
+#       tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+#   jobs:
+#     release:
+#       uses: glueckkanja/gkvm-tools/.github/workflows/release.yml@<sha> # vX.Y.Z
+name: GKVM module release
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        type: string
+        default: ubuntu-latest
+
+permissions: {}
+
+jobs:
+  release:
+    name: publish GitHub release
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: write # Required to create the release.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          args=(--generate-notes --verify-tag)
+          case "$TAG" in *-*) args+=(--prerelease) ;; esac
+          gh release create "$TAG" "${args[@]}"
