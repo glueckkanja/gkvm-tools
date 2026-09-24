@@ -21,7 +21,7 @@ jobs:
   sweep:
     permissions:
       contents: read # Required to check out the sweep script.
-    uses: glueckkanja/gkvm-tools/.github/workflows/sweep-github-sandbox.yml@main # TODO pin to a release SHA
+    uses: glueckkanja/gkvm-tools/.github/workflows/sweep-github-sandbox.yml@22733ccd383819c6705f83b40c425be0e1b9dcf8 # v0.1.4
     with:
       # A manual run defaults to a dry run; the nightly schedule deletes.
       dry_run: ${{ inputs.dry_run || false }}
