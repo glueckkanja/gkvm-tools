@@ -11,7 +11,7 @@ It replaces the AVM `make` targets and the `mcr.microsoft.com/azterraform` image
 | Container image | `ghcr.io/glueckkanja/gkvm-tools` | every tool, versions pinned in `versions.env`, cosign-signed |
 | Make targets | `Makefile`, `scripts/` | `pre-commit`, `pr-check`, `fmt`, `fix`, `docs`, `validate`, `tflint`, `test-*` |
 | Profiles | `profiles/{base,azure,github}` | tflint rulesets per provider family, terraform-docs default |
-| Reusable workflows | `.github/workflows/terraform-module.yml`, `release.yml` | the CI a module repository calls |
+| Reusable workflows | `.github/workflows/terraform-module.yml`, `release.yml`, `sweep-github-sandbox.yml` | the CI a module repository calls |
 | Templates | `templates/` | files to drop into a module repository |
 | Fixtures | `fixtures/` | minimal modules the image is self-tested against |
 
@@ -90,6 +90,8 @@ Prefer the App: its tokens are short-lived and belong to no person. The provider
 A live GitHub example needs organisation-wide write in that organisation, because creating a repository, setting organisation custom property values and managing teams cannot be scoped to a single repository. Point it at an organisation that holds nothing but test resources, and put a required reviewer on the `test` environment.
 
 `release.yml` publishes a GitHub release with generated notes on a `vX.Y.Z` tag; tags with a hyphen become pre-releases.
+
+`sweep-github-sandbox.yml` deletes leftovers of cancelled GitHub e2e runs from the sandbox organisation: repositories and teams matching a name prefix and older than `max_age_hours`, plus organisation rulesets and custom property definitions matching the prefix. It defaults to `dry_run: true`, refuses a prefix shorter than five characters, and skips the organisation-level objects entirely while a prefixed repository or team is younger than the cutoff, because that means a run may still be in flight. Those two endpoints expose no creation timestamp, which is why they cannot be age-gated themselves. One caller per organisation is enough.
 
 ## Image
 

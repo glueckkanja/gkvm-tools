@@ -1,0 +1,102 @@
+---
+# Delete leftovers of end-to-end runs from a GitHub sandbox organisation.
+#
+# A successful e2e run destroys what it created; leftovers come from cancelled or
+# crashed runs. Call this from the module repository that already holds the
+# sandbox credentials:
+#
+#   on:
+#     workflow_dispatch:
+#       inputs:
+#         dry_run: {type: boolean, default: true}
+#     schedule: [{cron: '17 4 * * *'}]
+#   jobs:
+#     sweep:
+#       permissions:
+#         contents: read
+#       uses: glueckkanja/gkvm-tools/.github/workflows/sweep-github-sandbox.yml@<sha>
+#       with:
+#         dry_run: ${{ inputs.dry_run || false }}
+#       secrets: inherit
+#
+# One caller per organisation is enough: the sweep covers repositories, teams,
+# organisation rulesets and organisation custom property definitions.
+name: Sweep GitHub sandbox
+
+on:
+  workflow_call:
+    inputs:
+      prefix:
+        description: Name prefix to match. Must be at least 5 characters.
+        type: string
+        default: gkvm-e2e-
+      max_age_hours:
+        description: Only delete objects older than this many hours.
+        type: number
+        default: 24
+      dry_run:
+        description: List what would be deleted without deleting it.
+        type: boolean
+        default: true
+      environment:
+        description: GitHub environment holding the sandbox credentials.
+        type: string
+        default: test
+      runs-on:
+        type: string
+        default: ubuntu-latest
+    secrets:
+      GKVM_GITHUB_APP_PEM_FILE:
+        description: Private key contents of the GitHub App installed on the sandbox organisation.
+        required: false
+      GKVM_GITHUB_TOKEN:
+        description: Personal access token for the sandbox organisation, used when no App is configured.
+        required: false
+
+permissions: {}
+
+jobs:
+  sweep:
+    name: sweep ${{ vars.GKVM_GITHUB_OWNER }}
+    runs-on: ${{ inputs.runs-on }}
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read # Required to check out the sweep script.
+    steps:
+      - name: check out gkvm-tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: glueckkanja/gkvm-tools
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+
+      # An App installation token is short lived and belongs to no person, so it
+      # is preferred over a personal access token when the App is configured.
+      - name: mint an App installation token
+        id: app
+        if: vars.GKVM_GITHUB_APP_ID != ''
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.GKVM_GITHUB_APP_ID }}
+          private-key: ${{ secrets.GKVM_GITHUB_APP_PEM_FILE }}
+          # A sweep has to find and delete repositories that did not exist when the
+          # token was minted, so it cannot be scoped to a list of repositories. It
+          # is scoped by permission instead, below, and the target is a sandbox
+          # organisation holding only test leftovers.
+          owner: ${{ vars.GKVM_GITHUB_OWNER }} # zizmor: ignore[github-app]
+          # Exactly what the four delete calls need, nothing more. Requesting a
+          # permission the installation does not hold fails this step, which is the
+          # signal we want: the sweep would not have been able to finish anyway.
+          permission-administration: write # delete repositories
+          permission-members: write # delete teams
+          permission-organization-administration: write # delete organisation rulesets
+          permission-organization-custom-properties: write # delete property definitions
+
+      - name: sweep
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token || secrets.GKVM_GITHUB_TOKEN }}
+          OWNER: ${{ vars.GKVM_GITHUB_OWNER }}
+          PREFIX: ${{ inputs.prefix }}
+          MAX_AGE_HOURS: ${{ inputs.max_age_hours }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: ./scripts/sweep-github-sandbox.sh

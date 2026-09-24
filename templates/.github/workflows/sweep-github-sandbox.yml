@@ -1,0 +1,30 @@
+---
+# Delete leftovers of cancelled end-to-end runs from the sandbox organisation.
+# One caller per organisation is enough: the sweep covers repositories, teams,
+# organisation rulesets and organisation custom property definitions.
+name: Sweep GitHub sandbox
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: List what would be deleted without deleting it.
+        type: boolean
+        default: true
+  # Nightly, well outside working hours, so a sweep never races a pull request.
+  schedule:
+    - cron: '17 4 * * *'
+
+permissions: {}
+
+jobs:
+  sweep:
+    permissions:
+      contents: read # Required to check out the sweep script.
+    uses: glueckkanja/gkvm-tools/.github/workflows/sweep-github-sandbox.yml@main # TODO pin to a release SHA
+    with:
+      # A manual run defaults to a dry run; the nightly schedule deletes.
+      dry_run: ${{ inputs.dry_run || false }}
+    # The App private key is an environment secret on "test", which only
+    # resolves inside the job declaring that environment.
+    secrets: inherit # zizmor: ignore[secrets-inherit]
