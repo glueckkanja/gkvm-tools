@@ -11,7 +11,7 @@
 #   CONTAINER_RUNTIME     docker (default) or podman
 #   GKVM_BINARY           tofu (default) or terraform
 #   GKVM_PROFILE          base | azure | github (default: auto-detect)
-#   ARM_* / GITHUB_TOKEN  passed through for example plans and integration tests
+#   ARM_* / GITHUB_*      passed through for example runs and integration tests
 
 set -eu
 
@@ -43,4 +43,5 @@ exec "$CONTAINER_RUNTIME" run --rm -it \
   -e GKVM_BINARY -e GKVM_PROFILE -e GKVM_E2E -e GKVM_EXAMPLE -e GKVM_ZIZMOR_PERSONA \
   -e ARM_CLIENT_ID -e ARM_CLIENT_SECRET -e ARM_TENANT_ID -e ARM_SUBSCRIPTION_ID -e ARM_USE_OIDC -e ARM_USE_AZUREAD \
   -e GITHUB_TOKEN -e GH_TOKEN -e GITHUB_OWNER -e GITHUB_REPOSITORY \
+  -e GITHUB_APP_ID -e GITHUB_APP_INSTALLATION_ID -e GITHUB_APP_PEM_FILE -e GITHUB_BASE_URL \
   "$GKVM_IMAGE" gkvm "$@"

@@ -46,7 +46,7 @@ on:
           gkvm-tools image. Defaults to the image released together with this
           workflow version; override with a digest for a fully reproducible run.
         type: string
-        default: ghcr.io/glueckkanja/gkvm-tools:0.1.2
+        default: ghcr.io/glueckkanja/gkvm-tools:0.1.3
       runs-on:
         description: Runner label.
         type: string
@@ -71,7 +71,15 @@ on:
         description: Per-repository override. Wins over ARM_SUBSCRIPTION_ID.
         required: false
       GKVM_GITHUB_TOKEN:
-        description: Token for the sandbox organisation used by GitHub example runs.
+        description: >-
+          Personal access token for the sandbox organisation used by GitHub
+          example runs. Leave unset when authenticating as a GitHub App.
+        required: false
+      GKVM_GITHUB_APP_PEM_FILE:
+        description: >-
+          Private key *contents* of the GitHub App used for GitHub example runs.
+          Needs the variables GKVM_GITHUB_APP_ID and
+          GKVM_GITHUB_APP_INSTALLATION_ID alongside it.
         required: false
 
 # Deny everything at the workflow level; each job grants only what it needs.
@@ -202,9 +210,19 @@ jobs:
       ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID_OVERRIDE || secrets.ARM_CLIENT_ID }}
       ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID_OVERRIDE || secrets.ARM_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID_OVERRIDE || secrets.ARM_SUBSCRIPTION_ID }}
-      # github profile: a token for the sandbox organisation.
+      # github profile: the provider picks App credentials over a token
+      # (auth_mode = auto). Only the App private key is a secret; its id and
+      # installation id are repository or environment variables, as is the
+      # sandbox organisation and, for GHES/GHEC-DR, the API base URL.
+      #
+      # GITHUB_OWNER deliberately wins over an `owner` argument in an example's
+      # provider block, so the same example runs against any sandbox org.
       GITHUB_TOKEN: ${{ secrets.GKVM_GITHUB_TOKEN }}
       GITHUB_OWNER: ${{ vars.GKVM_GITHUB_OWNER }}
+      GITHUB_APP_ID: ${{ vars.GKVM_GITHUB_APP_ID }}
+      GITHUB_APP_INSTALLATION_ID: ${{ vars.GKVM_GITHUB_APP_INSTALLATION_ID }}
+      GITHUB_APP_PEM_FILE: ${{ secrets.GKVM_GITHUB_APP_PEM_FILE }}
+      GITHUB_BASE_URL: ${{ vars.GKVM_GITHUB_BASE_URL }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

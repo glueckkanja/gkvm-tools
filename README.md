@@ -74,7 +74,20 @@ terraform-docs config resolution per scope: `<scope>/.terraform-docs.yml`, then 
 
 Inputs: `profile` (auto), `binary` (tofu), `examples` (off), `environment` (test), `image`, `runs-on`.
 
-Callers use `secrets: inherit`: the per-repository `ARM_CLIENT_ID_OVERRIDE`, `ARM_TENANT_ID_OVERRIDE` and `ARM_SUBSCRIPTION_ID_OVERRIDE` secrets live on the `test` environment and only resolve inside the called job that declares that environment. They win over the organisation-wide `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID`. Azure examples authenticate with OIDC: the providers exchange the Actions token themselves (`ARM_USE_OIDC=true`) using the organisation secrets `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID`. The Entra app needs a federated credential whose subject matches `repo:glueckkanja/<repo>:environment:test`, or one flexible federated credential matching all GKVM repositories. GitHub examples use `GKVM_GITHUB_TOKEN` (secret) and `GKVM_GITHUB_OWNER` (variable) for a sandbox organisation.
+Callers use `secrets: inherit`: the per-repository `ARM_CLIENT_ID_OVERRIDE`, `ARM_TENANT_ID_OVERRIDE` and `ARM_SUBSCRIPTION_ID_OVERRIDE` secrets live on the `test` environment and only resolve inside the called job that declares that environment. They win over the organisation-wide `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID`. Azure examples authenticate with OIDC: the providers exchange the Actions token themselves (`ARM_USE_OIDC=true`) using the organisation secrets `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID`. The Entra app needs a federated credential whose subject matches `repo:glueckkanja/<repo>:environment:test`, or one flexible federated credential matching all GKVM repositories. GitHub examples run against a sandbox organisation, configured on the `test` environment. Only the App private key is a secret:
+
+| Name | Kind | Purpose |
+|---|---|---|
+| `GKVM_GITHUB_OWNER` | variable | the sandbox organisation |
+| `GKVM_GITHUB_APP_ID` | variable | GitHub App id |
+| `GKVM_GITHUB_APP_INSTALLATION_ID` | variable | the App's installation on that organisation |
+| `GKVM_GITHUB_APP_PEM_FILE` | secret | the App private key, contents not a path |
+| `GKVM_GITHUB_TOKEN` | secret | a personal access token instead of the App |
+| `GKVM_GITHUB_BASE_URL` | variable | only for GitHub Enterprise Server or GHEC with data residency |
+
+Prefer the App: its tokens are short-lived and belong to no person. The provider picks App credentials over a token on its own.
+
+A live GitHub example needs organisation-wide write in that organisation, because creating a repository, setting organisation custom property values and managing teams cannot be scoped to a single repository. Point it at an organisation that holds nothing but test resources, and put a required reviewer on the `test` environment.
 
 `release.yml` publishes a GitHub release with generated notes on a `vX.Y.Z` tag; tags with a hyphen become pre-releases.
 
