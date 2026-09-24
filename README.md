@@ -48,6 +48,23 @@ The wrapper runs the image with Docker (or `CONTAINER_RUNTIME=podman`). Inside t
 
 Scopes are the repository root, every `modules/*` and every `examples/*` directory that contains `.tf` files.
 
+### Unique names in examples
+
+`test-examples` exports `TF_VAR_gkvm_suffix`, a short random string that is stable for one run. An example that creates objects in a shared namespace declares the input and builds its names from it:
+
+```hcl
+variable "gkvm_suffix" {
+  type    = string
+  default = "local"
+}
+
+locals {
+  name = "gkvm-e2e-something-${var.gkvm_suffix}"
+}
+```
+
+Use this rather than a `random_string` resource whenever the name ends up in a `for_each` key. Those keys must be known at plan time, and a resource attribute is not; an input is. Override the value with `GKVM_SUFFIX`. Examples that do not declare the variable ignore it.
+
 ## Profiles
 
 The profile is detected from the root `required_providers`: `azurerm`, `azapi` or `azuread` selects **azure**, `integrations/github` selects **github**, anything else **base**. Override with `GKVM_PROFILE` or `profile:` in `.gkvm.yml`.
