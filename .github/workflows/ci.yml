@@ -29,11 +29,18 @@ jobs:
         run: shellcheck -x --source-path=SCRIPTDIR scripts/*.sh docker/gkvm gkvm
       - uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
         with:
-          # Only this repository's own workflows; templates/ are audited by
-          # the module repositories that copy them.
-          inputs: .github
+          # This repository's own workflows and the templates module
+          # repositories copy, so a template finding is caught once here
+          # rather than in every copy.
+          inputs: .github templates/.github
           advanced-security: false
-          persona: regular
+          annotations: true
+          online-audits: false
+          # The strictest bar: informational and low-confidence findings too.
+          persona: auditor
+          # The zizmor the image ships, so CI, `gkvm zizmor` and a local run
+          # agree. Keep in step with ZIZMOR_VERSION in versions.env.
+          version: 1.30.1
 
   image:
     name: build image and run fixtures

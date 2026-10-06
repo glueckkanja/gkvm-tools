@@ -130,7 +130,7 @@ Tools inside (`gkvm versions`): OpenTofu, Terraform, tflint (plugins pre-install
 
 ## Developing gkvm-tools
 
-`ci.yml` runs shellcheck and zizmor, builds the image for the runner and runs `pr-check` and `pre-commit` against every directory in `fixtures/`. To run the scripts without the image:
+`ci.yml` runs shellcheck and zizmor (auditor persona, over `.github/` and `templates/.github/`; `.pre-commit-config.yaml` runs the same check locally), builds the image for the runner and runs `pr-check` and `pre-commit` against every directory in `fixtures/`. To run the scripts without the image:
 
 ```bash
 export GKVM_HOME=$PWD
