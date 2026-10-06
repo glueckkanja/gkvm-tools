@@ -11,6 +11,12 @@ on:
 
 permissions: {}
 
+# One publish per ref at a time, and never cancelled: an aborted run can leave
+# the image pushed but unsigned, or the floating major tag half moved.
+concurrency:
+  group: release-image-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   IMAGE: ghcr.io/${{ github.repository }}
 

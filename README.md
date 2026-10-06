@@ -110,6 +110,8 @@ A live GitHub example needs organisation-wide write in that organisation, becaus
 
 `sweep-github-sandbox.yml` deletes leftovers of cancelled GitHub e2e runs from the sandbox organisation: repositories and teams matching a name prefix and older than `max_age_hours`, plus organisation rulesets and custom property definitions matching the prefix. It defaults to `dry_run: true`, refuses a prefix shorter than five characters, and skips the organisation-level objects entirely while a prefixed repository or team is younger than the cutoff, because that means a run may still be in flight. Those two endpoints expose no creation timestamp, which is why they cannot be age-gated themselves. One caller per organisation is enough.
 
+Names starting with `gkvm-fixture-` or `gkvm_fixture_` are never deleted, whatever the prefix: they mark permanent fixtures of the sandbox, such as a custom property definition an example targets instead of creating. GitHub answers a property definition delete with a `500` while still performing it, so a failed property delete only counts as failed if the definition is still listed afterwards.
+
 ## Image
 
 Built by `release-image.yml` for `linux/amd64` and `linux/arm64` on every `vX.Y.Z` tag, pushed to GHCR with the tags `X.Y.Z`, `X.Y`, `vX` (currently `v0`) and `sha-…`, signed with cosign (keyless) and attested with build provenance.
@@ -122,13 +124,13 @@ cosign verify ghcr.io/glueckkanja/gkvm-tools:v0 \
   --certificate-oidc-issuer=https://token.actions.githubusercontent.com
 ```
 
-Releasing: bump `versions.env` if needed, set the `image` default in `.github/workflows/terraform-module.yml` to the new version, commit, tag `vX.Y.Z`, push the tag. Then pin `templates/` to the tag's commit SHA in a follow-up commit.
+Releasing: bump `versions.env` if needed, set the `image` default in `.github/workflows/terraform-module.yml` and the checkout `ref` in `.github/workflows/sweep-github-sandbox.yml` to the new version, commit, tag `vX.Y.Z`, push the tag. Then pin `templates/` to the tag's commit SHA in a follow-up commit.
 
 Tools inside (`gkvm versions`): OpenTofu, Terraform, tflint (plugins pre-installed for every profile), terraform-docs, terrafmt, avmfix, hclmerge, zizmor, git, jq, make. Versions live in `versions.env`; bump them in a pull request, tag, done.
 
 ## Developing gkvm-tools
 
-`ci.yml` runs shellcheck and zizmor, builds the image for the runner and runs `pr-check` and `pre-commit` against every directory in `fixtures/`. To run the scripts without the image:
+`ci.yml` runs shellcheck and zizmor (auditor persona, over `.github/` and `templates/.github/`; `.pre-commit-config.yaml` runs the same check locally), builds the image for the runner and runs `pr-check` and `pre-commit` against every directory in `fixtures/`. To run the scripts without the image:
 
 ```bash
 export GKVM_HOME=$PWD

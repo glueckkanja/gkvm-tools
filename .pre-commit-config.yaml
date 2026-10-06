@@ -1,0 +1,10 @@
+---
+# Local mirror of the zizmor gate in ci.yml: same persona, offline, and the
+# hook's file pattern also covers templates/.github/workflows.
+repos:
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: fa412071e4f5d44d44f9e365f4676f9df92456a2 # frozen: v1.30.1
+    hooks:
+      - id: zizmor
+        # Replaces the hook's default args, so --no-progress is repeated here.
+        args: [--no-progress, --no-online-audits, --persona=auditor]

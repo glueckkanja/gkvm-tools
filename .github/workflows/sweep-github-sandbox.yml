@@ -63,11 +63,16 @@ jobs:
     permissions:
       contents: read # Required to check out the sweep script.
     steps:
+      # The script must come from the gkvm-tools release this workflow belongs
+      # to. `github.workflow_sha` cannot name it: in a called workflow the
+      # github context is the caller's, so it resolves to a commit of the calling
+      # repository and the checkout fails with "not our ref". The tag is stamped
+      # here on release, like the `image` default in terraform-module.yml.
       - name: check out gkvm-tools
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: glueckkanja/gkvm-tools
-          ref: ${{ github.workflow_sha }}
+          ref: v0.1.6
           persist-credentials: false
 
       # An App installation token is short lived and belongs to no person, so it

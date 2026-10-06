@@ -15,6 +15,10 @@
 #   PREFIX          name prefix to match (required, at least 5 characters)
 #   MAX_AGE_HOURS   only delete objects older than this (default 24)
 #   DRY_RUN         "true" lists without deleting (default true)
+#
+# Names starting with gkvm-fixture- or gkvm_fixture_ are permanent fixtures of
+# the sandbox, such as a custom property definition an example targets instead
+# of creating, and are never deleted, whatever PREFIX is.
 
 set -euo pipefail
 
@@ -44,6 +48,12 @@ echo "==> sweeping '$OWNER' for '$PREFIX*' older than ${MAX_AGE_HOURS}h (dry_run
 
 age_hours() { echo $(( ( $(date -u +%s) - $1 ) / 3600 )); }
 
+# A PREFIX broad enough to match a fixture (gkvm, gkvm-, ...) must still not
+# delete it.
+is_fixture() {
+  case "$1" in gkvm-fixture-* | gkvm_fixture_*) return 0 ;; *) return 1 ;; esac
+}
+
 record() { # kind name age action
   # shellcheck disable=SC2016  # the backticks are markdown for the job summary
   printf '| %s | `%s` | %sh | %s |\n' "$1" "$2" "$3" "$4" >> "$summary"
@@ -52,17 +62,34 @@ record() { # kind name age action
 
 # `gh api -X DELETE` on a missing object is a hard error; a concurrent run may
 # have removed it already, so a failure is reported and does not abort the sweep.
-remove() { # endpoint kind name age
+#
+# GitHub answers DELETE orgs/{org}/properties/schema/{name} with a 500 while
+# still performing the deletion, so a failed property delete is checked against
+# the listing before it counts as a failure.
+remove() { # kind endpoint name age
+  if is_fixture "$3"; then
+    record "$1" "$3" "$4" "kept, fixture"
+    return 0
+  fi
   if [ "$DRY_RUN" = "true" ]; then
     record "$1" "$3" "$4" "would delete"
     return 0
   fi
   if gh api -X DELETE "$2" --silent 2>"$work/err"; then
     record "$1" "$3" "$4" "deleted"
+  elif [ "$1" = property ] && ! property_exists "$3"; then
+    record "$1" "$3" "$4" "deleted (API answered with an error)"
   else
     record "$1" "$3" "$4" "FAILED: $(tr -d '\n' < "$work/err" | cut -c1-120)"
     echo "1" >> "$work/failures"
   fi
+}
+
+# A listing that fails says nothing about the property, so it counts as present.
+property_exists() { # name
+  local names
+  names=$(gh api "orgs/$OWNER/properties/schema" --jq '.[].property_name' 2>/dev/null) || return 0
+  grep -qxF "$1" <<< "$names"
 }
 
 # --- repositories, timestamped ----------------------------------------------
