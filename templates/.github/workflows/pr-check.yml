@@ -25,7 +25,7 @@ jobs:
       contents: read # Required to check out the module sources.
       packages: read # Required to pull the gkvm-tools image from GHCR.
       id-token: write # Required for the providers' OIDC login in example runs.
-    uses: glueckkanja/gkvm-tools/.github/workflows/terraform-module.yml@060469b0bc7b96fdb37171a5b750de5dc540467a # v0.1.5
+    uses: glueckkanja/gkvm-tools/.github/workflows/terraform-module.yml@d47dce61d874d09f64fa82877e2f966bf033dea9 # v0.1.6
     with:
       # auto | base | azure | github
       profile: auto
